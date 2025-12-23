@@ -170,6 +170,11 @@ const vendorSchema = new mongoose.Schema(
       type: [String],
       default: [],
     },
+    // Agent Information (Section 7)
+    agentName: {
+      type: String,
+      trim: true,
+    },
   },
   {
     timestamps: true,

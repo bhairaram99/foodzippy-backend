@@ -76,6 +76,7 @@ export const registerVendor = async (req, res) => {
       loginEmail: req.body.loginEmail,
       loginPassword: req.body.loginPassword,
       categories: parseArrayField(req.body.categories),
+      agentName: req.body.agentName,
     };
 
     const vendor = await Vendor.create(vendorData);
