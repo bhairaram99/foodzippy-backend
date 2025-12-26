@@ -175,6 +175,14 @@ const vendorSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
+    agentId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Agent',
+    },
+    agentUsername: {
+      type: String,
+      trim: true,
+    },
   },
   {
     timestamps: true,

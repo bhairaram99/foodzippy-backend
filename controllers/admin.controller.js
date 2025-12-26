@@ -50,7 +50,7 @@ export const adminLogin = async (req, res) => {
 
 export const getAllVendors = async (req, res) => {
   try {
-    const { page = 1, limit = 10, status, city, search } = req.query;
+    const { page = 1, limit = 10, status, city, search, agentId } = req.query;
 
     const filter = {};
 
@@ -60,6 +60,10 @@ export const getAllVendors = async (req, res) => {
 
     if (city) {
       filter.city = city;
+    }
+
+    if (agentId) {
+      filter.agentId = agentId;
     }
 
     if (search) {

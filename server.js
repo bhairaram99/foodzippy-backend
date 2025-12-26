@@ -4,6 +4,7 @@ import cors from 'cors';
 import connectDB from './config/db.js';
 import vendorRoutes from './routes/vendor.routes.js';
 import adminRoutes from './routes/admin.routes.js';
+import agentRoutes from './routes/agent.routes.js';
 
 dotenv.config();
 
@@ -21,6 +22,7 @@ app.use(express.urlencoded({ extended: true }));
 // Routes
 app.use('/api/vendors', vendorRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/agents', agentRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
