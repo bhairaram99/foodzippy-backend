@@ -183,6 +183,28 @@ const vendorSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
+    // Edit Request Management
+    editRequested: {
+      type: Boolean,
+      default: false,
+    },
+    editApproved: {
+      type: Boolean,
+      default: false,
+    },
+    editRequestDate: {
+      type: Date,
+      default: null,
+    },
+    editApprovalDate: {
+      type: Date,
+      default: null,
+    },
+    editRemark: {
+      type: String,
+      trim: true,
+      default: '',
+    },
   },
   {
     timestamps: true,
