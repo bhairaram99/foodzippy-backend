@@ -77,6 +77,9 @@ export const registerVendor = async (req, res) => {
       loginPassword: req.body.loginPassword,
       categories: parseArrayField(req.body.categories),
       agentName: req.body.agentName,
+      // Agent Info (from JWT token)
+      agentId: req.agent?.id,
+      agentUsername: req.agent?.username,
     };
 
     const vendor = await Vendor.create(vendorData);
