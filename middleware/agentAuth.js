@@ -36,6 +36,7 @@ const agentAuth = async (req, res, next) => {
 
     // Attach agent info to request
     req.agent = {
+      agentId: agent._id,
       id: agent._id,
       name: agent.name,
       username: agent.username,

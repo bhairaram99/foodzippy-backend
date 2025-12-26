@@ -1,6 +1,8 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import Vendor from '../models/Vendor.js';
+import AgentAttendance from '../models/AgentAttendance.js';
+import Agent from '../models/Agent.js';
 
 export const adminLogin = async (req, res) => {
   try {
@@ -221,6 +223,272 @@ export const getVendorAnalytics = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to fetch analytics',
+      error: error.message,
+    });
+  }
+};
+
+// ========================================
+// ADMIN ATTENDANCE MANAGEMENT
+// ========================================
+
+// @desc    Get all agents' attendance
+// @route   GET /api/admin/attendance
+// @access  Private (Admin)
+export const getAllAgentAttendance = async (req, res) => {
+  try {
+    const { agentId, month, year, startDate, endDate, status } = req.query;
+
+    let query = {};
+
+    // Filter by agent
+    if (agentId) {
+      query.agentId = agentId;
+    }
+
+    // Filter by status
+    if (status) {
+      query.status = status;
+    }
+
+    // Filter by month and year
+    if (month && year) {
+      const start = new Date(year, month - 1, 1);
+      const end = new Date(year, month, 0, 23, 59, 59);
+      query.date = { $gte: start, $lte: end };
+    }
+    // Filter by date range
+    else if (startDate && endDate) {
+      query.date = {
+        $gte: new Date(startDate),
+        $lte: new Date(endDate),
+      };
+    }
+    // Default: current month
+    else {
+      const now = new Date();
+      const start = new Date(now.getFullYear(), now.getMonth(), 1);
+      const end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+      query.date = { $gte: start, $lte: end };
+    }
+
+    const attendance = await AgentAttendance.find(query)
+      .populate('agentId', 'name username email agentType profileImage')
+      .sort({ date: -1, checkIn: -1 });
+
+    // Calculate summary statistics
+    const totalRecords = attendance.length;
+    const uniqueAgents = [...new Set(attendance.map(a => a.agentId?._id.toString()))].length;
+    const presentCount = attendance.filter(a => a.status === 'Present').length;
+    const halfDayCount = attendance.filter(a => a.status === 'Half-Day').length;
+
+    res.status(200).json({
+      success: true,
+      count: totalRecords,
+      summary: {
+        totalRecords,
+        uniqueAgents,
+        presentCount,
+        halfDayCount,
+      },
+      attendance,
+    });
+  } catch (error) {
+    console.error('Get all attendance error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch attendance',
+      error: error.message,
+    });
+  }
+};
+
+// @desc    Get specific agent's attendance (Admin view)
+// @route   GET /api/admin/attendance/agent/:agentId
+// @access  Private (Admin)
+export const getAgentAttendanceByAdmin = async (req, res) => {
+  try {
+    const { agentId } = req.params;
+    const { month, year, startDate, endDate } = req.query;
+
+    // Verify agent exists
+    const agent = await Agent.findById(agentId);
+    if (!agent) {
+      return res.status(404).json({
+        success: false,
+        message: 'Agent not found',
+      });
+    }
+
+    let query = { agentId };
+
+    // Filter by month and year
+    if (month && year) {
+      const start = new Date(year, month - 1, 1);
+      const end = new Date(year, month, 0, 23, 59, 59);
+      query.date = { $gte: start, $lte: end };
+    }
+    // Filter by date range
+    else if (startDate && endDate) {
+      query.date = {
+        $gte: new Date(startDate),
+        $lte: new Date(endDate),
+      };
+    }
+    // Default: last 30 days
+    else {
+      const end = new Date();
+      const start = new Date();
+      start.setDate(start.getDate() - 30);
+      query.date = { $gte: start, $lte: end };
+    }
+
+    const attendance = await AgentAttendance.find(query).sort({ date: -1 });
+
+    // Calculate statistics
+    const totalDays = attendance.length;
+    const presentDays = attendance.filter(a => a.status === 'Present').length;
+    const halfDays = attendance.filter(a => a.status === 'Half-Day').length;
+    const totalMinutes = attendance.reduce((sum, a) => sum + a.duration, 0);
+    const avgDuration = totalDays > 0 ? Math.floor(totalMinutes / totalDays) : 0;
+
+    res.status(200).json({
+      success: true,
+      agent: {
+        id: agent._id,
+        name: agent.name,
+        username: agent.username,
+        email: agent.email,
+        agentType: agent.agentType,
+        profileImage: agent.profileImage,
+      },
+      statistics: {
+        totalDays,
+        presentDays,
+        halfDays,
+        totalHours: Math.floor(totalMinutes / 60),
+        avgHoursPerDay: Math.floor(avgDuration / 60),
+      },
+      count: attendance.length,
+      attendance,
+    });
+  } catch (error) {
+    console.error('Get agent attendance error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch agent attendance',
+      error: error.message,
+    });
+  }
+};
+
+// @desc    Approve vendor edit request
+// @route   PUT /api/admin/vendors/:id/approve-edit
+// @access  Private (Admin)
+export const approveVendorEdit = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const vendor = await Vendor.findById(id);
+
+    if (!vendor) {
+      return res.status(404).json({
+        success: false,
+        message: 'Vendor not found',
+      });
+    }
+
+    if (!vendor.editRequested) {
+      return res.status(400).json({
+        success: false,
+        message: 'No edit request found for this vendor',
+      });
+    }
+
+    vendor.editApproved = true;
+    vendor.editApprovalDate = new Date();
+
+    await vendor.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Edit request approved successfully',
+      vendor,
+    });
+  } catch (error) {
+    console.error('Approve edit error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to approve edit request',
+      error: error.message,
+    });
+  }
+};
+
+// @desc    Reject vendor edit request
+// @route   PUT /api/admin/vendors/:id/reject-edit
+// @access  Private (Admin)
+export const rejectVendorEdit = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const vendor = await Vendor.findById(id);
+
+    if (!vendor) {
+      return res.status(404).json({
+        success: false,
+        message: 'Vendor not found',
+      });
+    }
+
+    if (!vendor.editRequested) {
+      return res.status(400).json({
+        success: false,
+        message: 'No edit request found for this vendor',
+      });
+    }
+
+    vendor.editRequested = false;
+    vendor.editApproved = false;
+    vendor.editRequestDate = null;
+    vendor.editRemark = '';
+
+    await vendor.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Edit request rejected successfully',
+      vendor,
+    });
+  } catch (error) {
+    console.error('Reject edit error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to reject edit request',
+      error: error.message,
+    });
+  }
+};
+
+// @desc    Get vendors with pending edit requests
+// @route   GET /api/admin/vendors/edit-requests
+// @access  Private (Admin)
+export const getPendingEditRequests = async (req, res) => {
+  try {
+    const vendors = await Vendor.find({ editRequested: true, editApproved: false })
+      .populate('agentId', 'name username email')
+      .sort({ editRequestDate: -1 });
+
+    res.status(200).json({
+      success: true,
+      count: vendors.length,
+      vendors,
+    });
+  } catch (error) {
+    console.error('Get edit requests error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch edit requests',
       error: error.message,
     });
   }

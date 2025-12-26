@@ -19,6 +19,34 @@ const agentSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    email: {
+      type: String,
+      trim: true,
+      lowercase: true,
+      default: '',
+    },
+    phone: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    dob: {
+      type: Date,
+      default: null,
+    },
+    age: {
+      type: Number,
+      default: null,
+    },
+    agentType: {
+      type: String,
+      enum: ['Field Agent', 'Office Agent', 'Senior Agent', 'Manager'],
+      default: 'Field Agent',
+    },
+    profileImage: {
+      type: String,
+      default: '',
+    },
     isActive: {
       type: Boolean,
       default: true,

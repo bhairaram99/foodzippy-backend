@@ -5,6 +5,7 @@ import connectDB from './config/db.js';
 import vendorRoutes from './routes/vendor.routes.js';
 import adminRoutes from './routes/admin.routes.js';
 import agentRoutes from './routes/agent.routes.js';
+import attendanceRoutes from './routes/attendance.routes.js';
 
 dotenv.config();
 
@@ -23,6 +24,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api/vendors', vendorRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/agents', agentRoutes);
+app.use('/api/agent/attendance', attendanceRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
