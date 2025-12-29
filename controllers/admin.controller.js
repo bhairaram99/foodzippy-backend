@@ -54,22 +54,90 @@ export const adminLogin = async (req, res) => {
 
 export const getAllVendors = async (req, res) => {
   try {
-    const { page = 1, limit = 10, status, city, search, agentId } = req.query;
+    const { 
+      page = 1, 
+      limit = 10, 
+      status, 
+      city, 
+      search, 
+      agentId,
+      dateFilter, // daily, weekly, monthly
+      followUpFilter, // daily, weekly, monthly
+      includeStats = false // whether to include statistics
+    } = req.query;
 
     const filter = {};
 
-    if (status) {
+    // Agent/Employee filter
+    if (agentId) {
+      // Support both old system (agentId) and new system (createdById)
+      filter.$or = [
+        { agentId: agentId },
+        { createdById: agentId }
+      ];
+    }
+
+    // Status filter
+    if (status && status !== 'all') {
       filter.restaurantStatus = status;
     }
 
+    // City filter
     if (city) {
       filter.city = city;
     }
 
-    if (agentId) {
-      filter.agentId = agentId;
+    // Date filter (for creation date)
+    if (dateFilter) {
+      const now = new Date();
+      let startDate;
+
+      switch (dateFilter) {
+        case 'daily':
+          startDate = new Date(now.setHours(0, 0, 0, 0));
+          break;
+        case 'weekly':
+          startDate = new Date(now.setDate(now.getDate() - 7));
+          break;
+        case 'monthly':
+          startDate = new Date(now.setDate(now.getDate() - 30));
+          break;
+      }
+
+      if (startDate) {
+        filter.createdAt = { $gte: startDate };
+      }
     }
 
+    // Follow-up date filter
+    if (followUpFilter) {
+      const now = new Date();
+      let startDate, endDate;
+
+      switch (followUpFilter) {
+        case 'daily':
+          startDate = new Date(now.setHours(0, 0, 0, 0));
+          endDate = new Date(now.setHours(23, 59, 59, 999));
+          break;
+        case 'weekly':
+          startDate = new Date(now.setHours(0, 0, 0, 0));
+          endDate = new Date(now.setDate(now.getDate() + 7));
+          break;
+        case 'monthly':
+          startDate = new Date(now.setHours(0, 0, 0, 0));
+          endDate = new Date(now.setDate(now.getDate() + 30));
+          break;
+      }
+
+      if (startDate && endDate) {
+        filter['review.followUpDate'] = { 
+          $gte: startDate,
+          $lte: endDate 
+        };
+      }
+    }
+
+    // Search filter
     if (search) {
       filter.$or = [
         { restaurantName: { $regex: search, $options: 'i' } },
@@ -88,9 +156,65 @@ export const getAllVendors = async (req, res) => {
 
     const total = await Vendor.countDocuments(filter);
 
+    // Calculate statistics if requested
+    let statistics = {};
+    if (includeStats === 'true' && agentId) {
+      const agentFilter = {
+        $or: [
+          { agentId: agentId },
+          { createdById: agentId }
+        ]
+      };
+
+      // Count by status
+      const [approved, pending, rejected, totalWithFollowUp] = await Promise.all([
+        Vendor.countDocuments({ ...agentFilter, restaurantStatus: 'publish' }),
+        Vendor.countDocuments({ ...agentFilter, restaurantStatus: 'pending' }),
+        Vendor.countDocuments({ ...agentFilter, restaurantStatus: 'reject' }),
+        Vendor.countDocuments({ 
+          ...agentFilter, 
+          'review.followUpDate': { $exists: true, $ne: null } 
+        })
+      ]);
+
+      // Count follow-ups by time period
+      const now = new Date();
+      const todayStart = new Date(now.setHours(0, 0, 0, 0));
+      const todayEnd = new Date(now.setHours(23, 59, 59, 999));
+      const weekEnd = new Date(now.setDate(now.getDate() + 7));
+      const monthEnd = new Date(now.setDate(now.getDate() + 30));
+
+      const [followUpToday, followUpWeek, followUpMonth] = await Promise.all([
+        Vendor.countDocuments({
+          ...agentFilter,
+          'review.followUpDate': { $gte: todayStart, $lte: todayEnd }
+        }),
+        Vendor.countDocuments({
+          ...agentFilter,
+          'review.followUpDate': { $gte: todayStart, $lte: weekEnd }
+        }),
+        Vendor.countDocuments({
+          ...agentFilter,
+          'review.followUpDate': { $gte: todayStart, $lte: monthEnd }
+        })
+      ]);
+
+      statistics = {
+        approved,
+        pending,
+        rejected,
+        totalRequests: approved + pending + rejected,
+        totalWithFollowUp,
+        followUpToday,
+        followUpWeek,
+        followUpMonth
+      };
+    }
+
     res.status(200).json({
       success: true,
       data: vendors,
+      statistics,
       pagination: {
         page: parseInt(page),
         limit: parseInt(limit),
