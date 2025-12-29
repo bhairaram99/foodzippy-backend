@@ -170,17 +170,22 @@ const vendorSchema = new mongoose.Schema(
       type: [String],
       default: [],
     },
-    // Agent Information (Section 7)
-    agentName: {
+    // User Information (Section 7) - Can be Agent or Employee
+    createdByName: {
       type: String,
       trim: true,
     },
-    agentId: {
+    createdById: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'Agent',
+      ref: 'User',
     },
-    agentUsername: {
+    createdByUsername: {
       type: String,
+      trim: true,
+    },
+    createdByRole: {
+      type: String,
+      enum: ['agent', 'employee'],
       trim: true,
     },
     // Edit Request Management

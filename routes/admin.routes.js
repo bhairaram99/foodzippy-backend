@@ -10,6 +10,13 @@ import {
   approveVendorEdit,
   rejectVendorEdit,
   getPendingEditRequests,
+  getAllUsers,
+  getUserById,
+  createUser,
+  updateUser,
+  deleteUser,
+  getUserAttendance,
+  getAllUserAttendance,
 } from '../controllers/admin.controller.js';
 import adminAuth from '../middleware/adminAuth.js';
 
@@ -31,5 +38,16 @@ router.patch('/edit-requests/:id/reject', adminAuth, rejectVendorEdit);
 // Attendance routes
 router.get('/attendance', adminAuth, getAllAgentAttendance);
 router.get('/attendance/:agentId', adminAuth, getAgentAttendanceByAdmin);
+
+// User Management routes (Agents & Employees)
+router.get('/users', adminAuth, getAllUsers);
+router.get('/users/:id', adminAuth, getUserById);
+router.post('/users', adminAuth, createUser);
+router.put('/users/:id', adminAuth, updateUser);
+router.delete('/users/:id', adminAuth, deleteUser);
+
+// User Attendance routes
+router.get('/users-attendance', adminAuth, getAllUserAttendance);
+router.get('/users-attendance/:userId', adminAuth, getUserAttendance);
 
 export default router;
