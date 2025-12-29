@@ -76,10 +76,11 @@ export const registerVendor = async (req, res) => {
       loginEmail: req.body.loginEmail,
       loginPassword: req.body.loginPassword,
       categories: parseArrayField(req.body.categories),
-      agentName: req.body.agentName,
-      // Agent Info (from JWT token)
-      agentId: req.agent?.id,
-      agentUsername: req.agent?.username,
+      // User Info (from JWT token) - supports both old agent and new user auth
+      createdByName: req.body.agentName || (req.user?.name || req.agent?.name),
+      createdById: req.user?.userId || req.agent?.id,
+      createdByUsername: req.user?.username || req.agent?.username,
+      createdByRole: req.user?.role || 'agent',
     };
 
     const vendor = await Vendor.create(vendorData);

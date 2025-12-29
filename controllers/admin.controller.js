@@ -3,6 +3,8 @@ import bcrypt from 'bcryptjs';
 import Vendor from '../models/Vendor.js';
 import AgentAttendance from '../models/AgentAttendance.js';
 import Agent from '../models/Agent.js';
+import User from '../models/User.js';
+import UserAttendance from '../models/UserAttendance.js';
 
 export const adminLogin = async (req, res) => {
   try {
@@ -489,6 +491,297 @@ export const getPendingEditRequests = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to fetch edit requests',
+      error: error.message,
+    });
+  }
+};
+
+// User Management APIs (Agents and Employees)
+export const getAllUsers = async (req, res) => {
+  try {
+    const { role } = req.query; // Optional filter by role
+    
+    const filter = role ? { role } : {};
+    const users = await User.find(filter)
+      .select('-password')
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      count: users.length,
+      users,
+    });
+  } catch (error) {
+    console.error('Get users error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch users',
+      error: error.message,
+    });
+  }
+};
+
+export const getUserById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const user = await User.findById(id).select('-password');
+    
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      user,
+    });
+  } catch (error) {
+    console.error('Get user error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch user',
+      error: error.message,
+    });
+  }
+};
+
+export const createUser = async (req, res) => {
+  try {
+    const { name, username, password, mobileNumber, email, dob, role } = req.body;
+
+    if (!name || !username || !password || !role) {
+      return res.status(400).json({
+        success: false,
+        message: 'Name, username, password, and role are required',
+      });
+    }
+
+    if (!['agent', 'employee'].includes(role)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Role must be either "agent" or "employee"',
+      });
+    }
+
+    const existingUser = await User.findOne({ username });
+    if (existingUser) {
+      return res.status(400).json({
+        success: false,
+        message: 'Username already exists',
+      });
+    }
+
+    // Don't hash here - let the User model's pre-save hook handle it
+    const user = new User({
+      name,
+      username,
+      password: password, // Plain password - will be hashed by pre-save hook
+      phone: mobileNumber,
+      email,
+      dob,
+      role,
+      isActive: true,
+    });
+
+    await user.save();
+
+    const userResponse = user.toObject();
+    delete userResponse.password;
+
+    res.status(201).json({
+      success: true,
+      message: `${role.charAt(0).toUpperCase() + role.slice(1)} created successfully`,
+      user: userResponse,
+    });
+  } catch (error) {
+    console.error('Create user error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to create user',
+      error: error.message,
+    });
+  }
+};
+
+export const updateUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, username, mobileNumber, email, dob, isActive, password } = req.body;
+
+    const user = await User.findById(id);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
+      });
+    }
+
+    if (username && username !== user.username) {
+      const existingUser = await User.findOne({ username });
+      if (existingUser) {
+        return res.status(400).json({
+          success: false,
+          message: 'Username already exists',
+        });
+      }
+    }
+
+    if (name) user.name = name;
+    if (username) user.username = username;
+    if (mobileNumber) user.mobileNumber = mobileNumber;
+    if (email !== undefined) user.email = email;
+    if (dob !== undefined) user.dob = dob;
+    if (typeof isActive === 'boolean') user.isActive = isActive;
+    if (password) {
+      user.password = password; // Plain password - will be hashed by pre-save hook
+    }
+
+    await user.save();
+
+    const userResponse = user.toObject();
+    delete userResponse.password;
+
+    res.status(200).json({
+      success: true,
+      message: 'User updated successfully',
+      user: userResponse,
+    });
+  } catch (error) {
+    console.error('Update user error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update user',
+      error: error.message,
+    });
+  }
+};
+
+export const deleteUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const user = await User.findById(id);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
+      });
+    }
+
+    await User.findByIdAndDelete(id);
+
+    res.status(200).json({
+      success: true,
+      message: `${user.role.charAt(0).toUpperCase() + user.role.slice(1)} deleted successfully`,
+    });
+  } catch (error) {
+    console.error('Delete user error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete user',
+      error: error.message,
+    });
+  }
+};
+
+export const getUserAttendance = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { month, year, status } = req.query;
+
+    const filter = { userId };
+
+    if (month && year) {
+      const startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
+      const endDate = new Date(parseInt(year), parseInt(month), 0, 23, 59, 59);
+      filter.date = { $gte: startDate, $lte: endDate };
+    }
+
+    if (status) {
+      filter.status = status;
+    }
+
+    const attendance = await UserAttendance.find(filter)
+      .sort({ date: -1 })
+      .populate('userId', 'name username role');
+
+    const statistics = {
+      totalRecords: attendance.length,
+      presentCount: attendance.filter(a => a.status === 'Present').length,
+      halfDayCount: attendance.filter(a => a.status === 'Half Day').length,
+      totalDuration: attendance.reduce((sum, a) => sum + (a.duration || 0), 0),
+    };
+
+    statistics.averageDuration = statistics.totalRecords > 0 
+      ? statistics.totalDuration / statistics.totalRecords 
+      : 0;
+
+    res.status(200).json({
+      success: true,
+      attendance,
+      statistics,
+    });
+  } catch (error) {
+    console.error('Get user attendance error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch attendance',
+      error: error.message,
+    });
+  }
+};
+
+export const getAllUserAttendance = async (req, res) => {
+  try {
+    const { role, month, year, status } = req.query;
+
+    const filter = {};
+
+    if (role) {
+      filter.role = role;
+    }
+
+    if (month && year) {
+      const startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
+      const endDate = new Date(parseInt(year), parseInt(month), 0, 23, 59, 59);
+      filter.date = { $gte: startDate, $lte: endDate };
+    }
+
+    if (status) {
+      filter.status = status;
+    }
+
+    const attendance = await UserAttendance.find(filter)
+      .sort({ date: -1 })
+      .populate('userId', 'name username role');
+
+    const uniqueUsers = [...new Set(attendance.map(a => a.userId?._id?.toString()))];
+
+    const statistics = {
+      totalRecords: attendance.length,
+      uniqueUsers: uniqueUsers.length,
+      presentCount: attendance.filter(a => a.status === 'Present').length,
+      halfDayCount: attendance.filter(a => a.status === 'Half Day').length,
+      totalDuration: attendance.reduce((sum, a) => sum + (a.duration || 0), 0),
+    };
+
+    statistics.averageDuration = statistics.totalRecords > 0 
+      ? statistics.totalDuration / statistics.totalRecords 
+      : 0;
+
+    res.status(200).json({
+      success: true,
+      attendance,
+      statistics,
+    });
+  } catch (error) {
+    console.error('Get all attendance error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch attendance',
       error: error.message,
     });
   }

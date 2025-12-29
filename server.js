@@ -6,6 +6,8 @@ import vendorRoutes from './routes/vendor.routes.js';
 import adminRoutes from './routes/admin.routes.js';
 import agentRoutes from './routes/agent.routes.js';
 import attendanceRoutes from './routes/attendance.routes.js';
+import userRoutes from './routes/user.routes.js';
+import userAttendanceRoutes from './routes/userAttendance.routes.js';
 
 dotenv.config();
 
@@ -23,8 +25,12 @@ app.use(express.urlencoded({ extended: true }));
 // Routes
 app.use('/api/vendors', vendorRoutes);
 app.use('/api/admin', adminRoutes);
-app.use('/api/agents', agentRoutes);
-app.use('/api/agent/attendance', attendanceRoutes);
+app.use('/api/agents', agentRoutes); // Keep for backward compatibility
+app.use('/api/agent/attendance', attendanceRoutes); // Keep for backward compatibility
+
+// New unified routes for agents and employees
+app.use('/api/users', userRoutes);
+app.use('/api/attendance', userAttendanceRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
