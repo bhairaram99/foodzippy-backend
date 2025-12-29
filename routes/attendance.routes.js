@@ -5,14 +5,14 @@ import {
   getMyAttendance,
   getTodayAttendance,
 } from '../controllers/attendance.controller.js';
-import agentAuth from '../middleware/agentAuth.js';
+import combinedAuth from '../middleware/combinedAuth.js';
 
 const router = express.Router();
 
-// All routes are protected with agentAuth middleware
-router.use(agentAuth);
+// All routes are protected with combinedAuth middleware (supports both old Agent and new User tokens)
+router.use(combinedAuth);
 
-// Agent attendance routes
+// Agent/Employee attendance routes
 router.post('/check-in', checkIn);
 router.post('/check-out', checkOut);
 router.get('/my', getMyAttendance);

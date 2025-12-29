@@ -26,26 +26,26 @@ const vendorSchema = new mongoose.Schema(
     },
     approxDeliveryTime: {
       type: String,
-      required: true,
+      required: false, // Changed to optional
     },
     approxPriceForTwo: {
       type: Number,
-      required: true,
+      required: false, // Changed to optional
     },
     certificateCode: {
       type: String,
-      required: true,
+      required: false, // Changed to optional
       trim: true,
     },
     mobileNumber: {
       type: String,
-      required: true,
+      required: false, // Changed to optional
       trim: true,
       index: true,
     },
     shortDescription: {
       type: String,
-      required: true,
+      required: false, // Changed to optional
     },
     services: {
       type: [String],
@@ -62,7 +62,7 @@ const vendorSchema = new mongoose.Schema(
     deliveryChargeType: {
       type: String,
       enum: ['fixed', 'dynamic'],
-      required: true,
+      required: false, // Changed to optional
     },
     fixedCharge: {
       type: Number,
@@ -78,15 +78,15 @@ const vendorSchema = new mongoose.Schema(
     },
     deliveryRadius: {
       type: Number,
-      required: true,
+      required: false, // Changed to optional
     },
     minimumOrderPrice: {
       type: Number,
-      required: true,
+      required: false, // Changed to optional
     },
     commissionRate: {
       type: Number,
-      required: true,
+      required: false, // Changed to optional
       min: 0,
       max: 100,
     },
@@ -120,11 +120,11 @@ const vendorSchema = new mongoose.Schema(
     },
     fullAddress: {
       type: String,
-      required: true,
+      required: true, // Keep required
     },
     pincode: {
       type: String,
-      required: true,
+      required: false, // Changed to optional
       trim: true,
     },
     landmark: {
@@ -133,21 +133,21 @@ const vendorSchema = new mongoose.Schema(
     },
     latitude: {
       type: Number,
-      required: true,
+      required: true, // Keep required
     },
     longitude: {
       type: Number,
-      required: true,
+      required: true, // Keep required
     },
     city: {
       type: String,
-      required: true,
+      required: false, // Changed to optional
       trim: true,
       index: true,
     },
     state: {
       type: String,
-      required: true,
+      required: false, // Changed to optional
       trim: true,
     },
     mapType: {
@@ -156,15 +156,16 @@ const vendorSchema = new mongoose.Schema(
     },
     loginEmail: {
       type: String,
-      required: true,
+      required: false, // Changed to optional
       trim: true,
       lowercase: true,
       index: true,
       unique: true,
+      sparse: true, // Allow multiple null/undefined values
     },
     loginPassword: {
       type: String,
-      required: true,
+      required: false, // Changed to optional
     },
     categories: {
       type: [String],
@@ -209,6 +210,27 @@ const vendorSchema = new mongoose.Schema(
       type: String,
       trim: true,
       default: '',
+    },
+    // Review Section - Captured by Agent/Employee after vendor registration
+    review: {
+      followUpDate: {
+        type: Date,
+        required: true,
+      },
+      convincingStatus: {
+        type: String,
+        enum: ['convenience', 'convertible', 'not_convertible'],
+        required: true,
+      },
+      behavior: {
+        type: String,
+        enum: ['excellent', 'good', 'rude'],
+        required: true,
+      },
+      audioUrl: {
+        type: String, // Cloudinary URL for voice recording
+        trim: true,
+      },
     },
   },
   {
