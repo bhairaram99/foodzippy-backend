@@ -3,6 +3,35 @@ import cloudinary from '../config/cloudinary.js';
 
 export const registerVendor = async (req, res) => {
   try {
+    // Validate review section is present
+    if (!req.body.review) {
+      return res.status(400).json({
+        success: false,
+        message: 'Review section is required',
+      });
+    }
+
+    // Parse review data
+    let reviewData;
+    try {
+      reviewData = typeof req.body.review === 'string' 
+        ? JSON.parse(req.body.review) 
+        : req.body.review;
+    } catch {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid review data format',
+      });
+    }
+
+    // Validate required review fields
+    if (!reviewData.followUpDate || !reviewData.convincingStatus || !reviewData.behavior) {
+      return res.status(400).json({
+        success: false,
+        message: 'Review section must include followUpDate, convincingStatus, and behavior',
+      });
+    }
+
     if (!req.file) {
       return res.status(400).json({
         success: false,
@@ -81,6 +110,13 @@ export const registerVendor = async (req, res) => {
       createdById: req.user?.userId || req.agent?.id,
       createdByUsername: req.user?.username || req.agent?.username,
       createdByRole: req.user?.role || 'agent',
+      // Review Section
+      review: {
+        followUpDate: new Date(reviewData.followUpDate),
+        convincingStatus: reviewData.convincingStatus,
+        behavior: reviewData.behavior,
+        audioUrl: reviewData.audioUrl || null,
+      },
     };
 
     const vendor = await Vendor.create(vendorData);

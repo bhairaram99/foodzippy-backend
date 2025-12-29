@@ -1,30 +1,50 @@
 import AgentAttendance from '../models/AgentAttendance.js';
+import UserAttendance from '../models/UserAttendance.js';
 import Agent from '../models/Agent.js';
+import User from '../models/User.js';
 
-// @desc    Agent Check-in
+// @desc    Agent/Employee Check-in
 // @route   POST /api/agent/attendance/check-in
-// @access  Private (Agent)
+// @access  Private (Agent/Employee)
 export const checkIn = async (req, res) => {
   try {
-    const agentId = req.agent.agentId;
+    // Support both old Agent and new User systems
+    const userId = req.user?.userId || req.agent?.agentId;
+    const isNewSystem = !!req.user;
     const { location } = req.body;
 
-    // Get agent details
-    const agent = await Agent.findById(agentId);
-    if (!agent) {
-      return res.status(404).json({
-        success: false,
-        message: 'Agent not found',
-      });
+    // Get user/agent details
+    let userName;
+    if (isNewSystem) {
+      const user = await User.findById(userId);
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: 'User not found',
+        });
+      }
+      userName = user.name;
+    } else {
+      const agent = await Agent.findById(userId);
+      if (!agent) {
+        return res.status(404).json({
+          success: false,
+          message: 'Agent not found',
+        });
+      }
+      userName = agent.name;
     }
 
     // Get today's date (start of day)
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // Check if already checked in today
-    const existingAttendance = await AgentAttendance.findOne({
-      agentId,
+    // Check if already checked in today (use appropriate model)
+    const AttendanceModel = isNewSystem ? UserAttendance : AgentAttendance;
+    const userIdField = isNewSystem ? 'userId' : 'agentId';
+    
+    const existingAttendance = await AttendanceModel.findOne({
+      [userIdField]: userId,
       date: today,
     });
 
@@ -37,15 +57,17 @@ export const checkIn = async (req, res) => {
     }
 
     // Create new attendance record
-    const attendance = await AgentAttendance.create({
-      agentId,
-      agentName: agent.name,
+    const attendanceData = {
+      [userIdField]: userId,
+      [isNewSystem ? 'userName' : 'agentName']: userName,
       date: today,
       checkIn: new Date(),
       location: {
         checkInLocation: location || {},
       },
-    });
+    };
+
+    const attendance = await AttendanceModel.create(attendanceData);
 
     res.status(201).json({
       success: true,
@@ -61,21 +83,26 @@ export const checkIn = async (req, res) => {
   }
 };
 
-// @desc    Agent Check-out
+// @desc    Agent/Employee Check-out
 // @route   POST /api/agent/attendance/check-out
-// @access  Private (Agent)
+// @access  Private (Agent/Employee)
 export const checkOut = async (req, res) => {
   try {
-    const agentId = req.agent.agentId;
+    // Support both old Agent and new User systems
+    const userId = req.user?.userId || req.agent?.agentId;
+    const isNewSystem = !!req.user;
     const { location, remark } = req.body;
 
     // Get today's date (start of day)
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // Find today's attendance
-    const attendance = await AgentAttendance.findOne({
-      agentId,
+    // Find today's attendance (use appropriate model)
+    const AttendanceModel = isNewSystem ? UserAttendance : AgentAttendance;
+    const userIdField = isNewSystem ? 'userId' : 'agentId';
+    
+    const attendance = await AttendanceModel.findOne({
+      [userIdField]: userId,
       date: today,
     });
 
@@ -119,15 +146,20 @@ export const checkOut = async (req, res) => {
   }
 };
 
-// @desc    Get agent's own attendance records
+// @desc    Get agent/employee's own attendance records
 // @route   GET /api/agent/attendance/my
-// @access  Private (Agent)
+// @access  Private (Agent/Employee)
 export const getMyAttendance = async (req, res) => {
   try {
-    const agentId = req.agent.agentId;
+    // Support both old Agent and new User systems
+    const userId = req.user?.userId || req.agent?.agentId;
+    const isNewSystem = !!req.user;
     const { month, year, startDate, endDate } = req.query;
 
-    let query = { agentId };
+    const AttendanceModel = isNewSystem ? UserAttendance : AgentAttendance;
+    const userIdField = isNewSystem ? 'userId' : 'agentId';
+    
+    let query = { [userIdField]: userId };
 
     // Filter by month and year
     if (month && year) {
@@ -182,16 +214,21 @@ export const getMyAttendance = async (req, res) => {
 
 // @desc    Get today's attendance status
 // @route   GET /api/agent/attendance/today
-// @access  Private (Agent)
+// @access  Private (Agent/Employee)
 export const getTodayAttendance = async (req, res) => {
   try {
-    const agentId = req.agent.agentId;
+    // Support both old Agent and new User systems
+    const userId = req.user?.userId || req.agent?.agentId;
+    const isNewSystem = !!req.user;
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const attendance = await AgentAttendance.findOne({
-      agentId,
+    const AttendanceModel = isNewSystem ? UserAttendance : AgentAttendance;
+    const userIdField = isNewSystem ? 'userId' : 'agentId';
+
+    const attendance = await AttendanceModel.findOne({
+      [userIdField]: userId,
       date: today,
     });
 
