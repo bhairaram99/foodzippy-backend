@@ -1,9 +1,12 @@
 import Vendor from '../models/Vendor.js';
+import VendorFormConfig from '../models/VendorFormConfig.js';
 import cloudinary from '../config/cloudinary.js';
 
 export const registerVendor = async (req, res) => {
   try {
-    // Validate review section is present
+    // ==========================================
+    // 1. VALIDATE REVIEW SECTION
+    // ==========================================
     if (!req.body.review) {
       return res.status(400).json({
         success: false,
@@ -11,7 +14,6 @@ export const registerVendor = async (req, res) => {
       });
     }
 
-    // Parse review data
     let reviewData;
     try {
       reviewData = typeof req.body.review === 'string' 
@@ -24,14 +26,25 @@ export const registerVendor = async (req, res) => {
       });
     }
 
+    // Get review field configs to check required fields
+    const reviewFieldConfigs = await VendorFormConfig.find({
+      section: 'review_info',
+      isActive: true,
+    });
+
     // Validate required review fields
-    if (!reviewData.followUpDate || !reviewData.convincingStatus || !reviewData.behavior) {
-      return res.status(400).json({
-        success: false,
-        message: 'Review section must include followUpDate, convincingStatus, and behavior',
-      });
+    for (const fieldConfig of reviewFieldConfigs) {
+      if (fieldConfig.required && !reviewData[fieldConfig.fieldKey]) {
+        return res.status(400).json({
+          success: false,
+          message: `${fieldConfig.label} is required in review section`,
+        });
+      }
     }
 
+    // ==========================================
+    // 2. VALIDATE & UPLOAD IMAGE
+    // ==========================================
     if (!req.file) {
       return res.status(400).json({
         success: false,
@@ -39,7 +52,6 @@ export const registerVendor = async (req, res) => {
       });
     }
 
-    // Upload image to Cloudinary
     const uploadResult = await new Promise((resolve, reject) => {
       const uploadStream = cloudinary.uploader.upload_stream(
         {
@@ -54,69 +66,92 @@ export const registerVendor = async (req, res) => {
       uploadStream.end(req.file.buffer);
     });
 
-    // Helper to parse array fields
-    const parseArrayField = (field) => {
-      if (!field) return [];
-      if (Array.isArray(field)) return field;
-      try {
-        const parsed = JSON.parse(field);
-        return Array.isArray(parsed) ? parsed : [field];
-      } catch {
-        return [field];
-      }
-    };
+    // ==========================================
+    // 3. GET FORM CONFIG & VALIDATE
+    // ==========================================
+    const formFields = await VendorFormConfig.find({
+      isActive: true,
+      section: { $ne: 'review_info' }, // Exclude review section
+    });
 
-    // Parse form data
+    // Parse formData from request
+    let formData = {};
+    try {
+      formData = typeof req.body.formData === 'string' 
+        ? JSON.parse(req.body.formData) 
+        : req.body.formData || {};
+    } catch {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid formData format',
+      });
+    }
+
+    // Validate required fields
+    const missingFields = [];
+    for (const fieldConfig of formFields) {
+      // Skip restaurantImage validation as it's handled separately via req.file
+      if (fieldConfig.fieldKey === 'restaurantImage') {
+        continue;
+      }
+      
+      if (fieldConfig.required && !formData[fieldConfig.fieldKey]) {
+        missingFields.push(fieldConfig.label);
+      }
+    }
+
+    if (missingFields.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Required fields are missing',
+        missingFields,
+      });
+    }
+
+    // ==========================================
+    // 4. EXTRACT SYSTEM FIELDS
+    // ==========================================
+    // These fields are required at schema level
+    const restaurantName = formData.restaurantName || req.body.restaurantName;
+    const fullAddress = formData.fullAddress || req.body.fullAddress;
+    const latitude = formData.latitude || req.body.latitude;
+    const longitude = formData.longitude || req.body.longitude;
+
+    if (!restaurantName || !fullAddress || !latitude || !longitude) {
+      return res.status(400).json({
+        success: false,
+        message: 'Restaurant name, address, latitude, and longitude are required',
+      });
+    }
+
+    // ==========================================
+    // 5. CREATE VENDOR
+    // ==========================================
     const vendorData = {
-      restaurantName: req.body.restaurantName,
+      // System fields (required by schema)
+      restaurantName,
       restaurantImage: uploadResult,
-      restaurantStatus: 'pending', // Force pending status
-      rating: req.body.rating || 0,
-      approxDeliveryTime: req.body.approxDeliveryTime,
-      approxPriceForTwo: req.body.approxPriceForTwo,
-      certificateCode: req.body.certificateCode,
-      mobileNumber: req.body.mobileNumber,
-      shortDescription: req.body.shortDescription,
-      services: parseArrayField(req.body.services),
-      isPureVeg: req.body.isPureVeg === 'true',
-      isPopular: req.body.isPopular === 'true',
-      deliveryChargeType: req.body.deliveryChargeType,
-      fixedCharge: req.body.fixedCharge || 0,
-      dynamicCharge: req.body.dynamicCharge || 0,
-      storeCharge: req.body.storeCharge || 0,
-      deliveryRadius: req.body.deliveryRadius,
-      minimumOrderPrice: req.body.minimumOrderPrice,
-      commissionRate: req.body.commissionRate,
-      bankName: req.body.bankName,
-      bankCode: req.body.bankCode,
-      recipientName: req.body.recipientName,
-      accountNumber: req.body.accountNumber,
-      paypalId: req.body.paypalId,
-      upiId: req.body.upiId,
-      searchLocation: req.body.searchLocation,
-      fullAddress: req.body.fullAddress,
-      pincode: req.body.pincode,
-      landmark: req.body.landmark,
-      latitude: req.body.latitude,
-      longitude: req.body.longitude,
-      city: req.body.city,
-      state: req.body.state,
-      mapType: req.body.mapType,
-      loginEmail: req.body.loginEmail,
-      loginPassword: req.body.loginPassword,
-      categories: parseArrayField(req.body.categories),
-      // User Info (from JWT token) - supports both old agent and new user auth
-      createdByName: req.body.agentName || (req.user?.name || req.agent?.name),
-      createdById: req.user?.userId || req.agent?.id,
-      createdByUsername: req.user?.username || req.agent?.username,
-      createdByRole: req.user?.role || 'agent',
-      // Review Section
+      restaurantStatus: 'pending',
+      fullAddress,
+      latitude: parseFloat(latitude),
+      longitude: parseFloat(longitude),
+
+      // Dynamic form data (all other fields)
+      formData: new Map(Object.entries(formData)),
+
+      // Review section (structured)
       review: {
-        followUpDate: new Date(reviewData.followUpDate),
+        followUpDate: reviewData.followUpDate ? new Date(reviewData.followUpDate) : undefined,
         convincingStatus: reviewData.convincingStatus,
         behavior: reviewData.behavior,
         audioUrl: reviewData.audioUrl || null,
       },
+
+      // User tracking (from JWT token)
+      createdByName: req.body.agentName || (req.user?.name || req.agent?.name),
+      createdById: req.user?.userId || req.agent?.id,
+      createdByUsername: req.user?.username || req.agent?.username,
+      createdByRole: req.user?.role || 'agent',
     };
 
     const vendor = await Vendor.create(vendorData);
