@@ -733,7 +733,7 @@ export const createUser = async (req, res) => {
 export const updateUser = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, username, mobileNumber, email, dob, isActive, password } = req.body;
+    const { name, username, mobileNumber, phone, email, dob, isActive, password } = req.body;
 
     const user = await User.findById(id);
     if (!user) {
@@ -755,7 +755,8 @@ export const updateUser = async (req, res) => {
 
     if (name) user.name = name;
     if (username) user.username = username;
-    if (mobileNumber) user.mobileNumber = mobileNumber;
+    if (mobileNumber) user.phone = mobileNumber; // Support mobileNumber field
+    if (phone) user.phone = phone; // Support phone field
     if (email !== undefined) user.email = email;
     if (dob !== undefined) user.dob = dob;
     if (typeof isActive === 'boolean') user.isActive = isActive;
@@ -832,16 +833,16 @@ export const getUserAttendance = async (req, res) => {
       .sort({ date: -1 })
       .populate('userId', 'name username role');
 
-    const statistics = {
-      totalRecords: attendance.length,
-      presentCount: attendance.filter(a => a.status === 'Present').length,
-      halfDayCount: attendance.filter(a => a.status === 'Half Day').length,
-      totalDuration: attendance.reduce((sum, a) => sum + (a.duration || 0), 0),
-    };
+    const totalMinutes = attendance.reduce((sum, a) => sum + (a.duration || 0), 0);
+    const avgDuration = attendance.length > 0 ? Math.floor(totalMinutes / attendance.length) : 0;
 
-    statistics.averageDuration = statistics.totalRecords > 0 
-      ? statistics.totalDuration / statistics.totalRecords 
-      : 0;
+    const statistics = {
+      totalDays: attendance.length,
+      presentDays: attendance.filter(a => a.status === 'Present').length,
+      halfDays: attendance.filter(a => a.status === 'Half-Day' || a.status === 'Half Day').length,
+      totalHours: Math.floor(totalMinutes / 60),
+      avgHoursPerDay: Math.floor(avgDuration / 60),
+    };
 
     res.status(200).json({
       success: true,

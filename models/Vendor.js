@@ -2,6 +2,18 @@ import mongoose from 'mongoose';
 
 const vendorSchema = new mongoose.Schema(
   {
+    // ==========================================
+    // DYNAMIC FORM DATA (All form fields go here)
+    // ==========================================
+    formData: {
+      type: Map,
+      of: mongoose.Schema.Types.Mixed,
+      default: {},
+    },
+
+    // ==========================================
+    // CORE SYSTEM FIELDS (Non-configurable)
+    // ==========================================
     restaurantName: {
       type: String,
       required: true,
@@ -18,160 +30,43 @@ const vendorSchema = new mongoose.Schema(
       default: 'pending',
       index: true,
     },
-    rating: {
-      type: Number,
-      default: 0,
-      min: 0,
-      max: 5,
-    },
-    approxDeliveryTime: {
-      type: String,
-      required: false, // Changed to optional
-    },
-    approxPriceForTwo: {
-      type: Number,
-      required: false, // Changed to optional
-    },
-    certificateCode: {
-      type: String,
-      required: false, // Changed to optional
-      trim: true,
-    },
-    mobileNumber: {
-      type: String,
-      required: false, // Changed to optional
-      trim: true,
-      index: true,
-    },
-    shortDescription: {
-      type: String,
-      required: false, // Changed to optional
-    },
-    services: {
-      type: [String],
-      default: [],
-    },
-    isPureVeg: {
-      type: Boolean,
-      default: false,
-    },
-    isPopular: {
-      type: Boolean,
-      default: false,
-    },
-    deliveryChargeType: {
-      type: String,
-      enum: ['fixed', 'dynamic'],
-      required: false, // Changed to optional
-    },
-    fixedCharge: {
-      type: Number,
-      default: 0,
-    },
-    dynamicCharge: {
-      type: Number,
-      default: 0,
-    },
-    storeCharge: {
-      type: Number,
-      default: 0,
-    },
-    deliveryRadius: {
-      type: Number,
-      required: false, // Changed to optional
-    },
-    minimumOrderPrice: {
-      type: Number,
-      required: false, // Changed to optional
-    },
-    commissionRate: {
-      type: Number,
-      required: false, // Changed to optional
-      min: 0,
-      max: 100,
-    },
-    bankName: {
-      type: String,
-      trim: true,
-    },
-    bankCode: {
-      type: String,
-      trim: true,
-    },
-    recipientName: {
-      type: String,
-      trim: true,
-    },
-    accountNumber: {
-      type: String,
-      trim: true,
-    },
-    paypalId: {
-      type: String,
-      trim: true,
-    },
-    upiId: {
-      type: String,
-      trim: true,
-    },
-    searchLocation: {
-      type: String,
-      trim: true,
-    },
     fullAddress: {
       type: String,
-      required: true, // Keep required
-    },
-    pincode: {
-      type: String,
-      required: false, // Changed to optional
-      trim: true,
-    },
-    landmark: {
-      type: String,
-      trim: true,
+      required: true,
     },
     latitude: {
       type: Number,
-      required: true, // Keep required
+      required: true,
     },
     longitude: {
       type: Number,
-      required: true, // Keep required
+      required: true,
     },
-    city: {
-      type: String,
-      required: false, // Changed to optional
-      trim: true,
-      index: true,
+
+    // ==========================================
+    // REVIEW SECTION (Structured but Configurable)
+    // ==========================================
+    review: {
+      followUpDate: {
+        type: Date,
+      },
+      convincingStatus: {
+        type: String,
+        enum: ['convenience', 'convertible', 'not_convertible'],
+      },
+      behavior: {
+        type: String,
+        enum: ['excellent', 'good', 'rude'],
+      },
+      audioUrl: {
+        type: String, // Cloudinary URL for voice recording
+        trim: true,
+      },
     },
-    state: {
-      type: String,
-      required: false, // Changed to optional
-      trim: true,
-    },
-    mapType: {
-      type: String,
-      trim: true,
-    },
-    loginEmail: {
-      type: String,
-      required: false, // Changed to optional
-      trim: true,
-      lowercase: true,
-      index: true,
-      unique: true,
-      sparse: true, // Allow multiple null/undefined values
-    },
-    loginPassword: {
-      type: String,
-      required: false, // Changed to optional
-    },
-    categories: {
-      type: [String],
-      default: [],
-    },
-    // User Information (Section 7) - Can be Agent or Employee
+
+    // ==========================================
+    // USER TRACKING (Who created this vendor)
+    // ==========================================
     createdByName: {
       type: String,
       trim: true,
@@ -189,7 +84,10 @@ const vendorSchema = new mongoose.Schema(
       enum: ['agent', 'employee'],
       trim: true,
     },
-    // Edit Request Management
+
+    // ==========================================
+    // EDIT REQUEST MANAGEMENT
+    // ==========================================
     editRequested: {
       type: Boolean,
       default: false,
@@ -210,27 +108,6 @@ const vendorSchema = new mongoose.Schema(
       type: String,
       trim: true,
       default: '',
-    },
-    // Review Section - Captured by Agent/Employee after vendor registration
-    review: {
-      followUpDate: {
-        type: Date,
-        required: true,
-      },
-      convincingStatus: {
-        type: String,
-        enum: ['convenience', 'convertible', 'not_convertible'],
-        required: true,
-      },
-      behavior: {
-        type: String,
-        enum: ['excellent', 'good', 'rude'],
-        required: true,
-      },
-      audioUrl: {
-        type: String, // Cloudinary URL for voice recording
-        trim: true,
-      },
     },
   },
   {

@@ -8,6 +8,7 @@ import agentRoutes from './routes/agent.routes.js';
 import attendanceRoutes from './routes/attendance.routes.js';
 import userRoutes from './routes/user.routes.js';
 import userAttendanceRoutes from './routes/userAttendance.routes.js';
+import formConfigRoutes from './routes/formConfig.routes.js';
 
 dotenv.config();
 
@@ -31,6 +32,9 @@ app.use('/api/agent/attendance', attendanceRoutes); // Keep for backward compati
 // New unified routes for agents and employees
 app.use('/api/users', userRoutes);
 app.use('/api/attendance', userAttendanceRoutes);
+
+// Form configuration routes
+app.use('/api/form', formConfigRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
