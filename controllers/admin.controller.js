@@ -602,7 +602,7 @@ export const rejectVendorEdit = async (req, res) => {
 export const getPendingEditRequests = async (req, res) => {
   try {
     const vendors = await Vendor.find({ editRequested: true, editApproved: false })
-      .populate('agentId', 'name username email')
+      .populate('createdById', 'name username email role')
       .sort({ editRequestDate: -1 });
 
     res.status(200).json({

@@ -475,6 +475,44 @@ export const getMyVendors = async (req, res) => {
   }
 };
 
+// @desc    Get single vendor by ID
+// @route   GET /api/agent/vendors/:id OR GET /api/employee/vendors/:id
+// @access  Private (User)
+export const getMyVendorById = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { id } = req.params;
+
+    const vendor = await Vendor.findById(id);
+
+    if (!vendor) {
+      return res.status(404).json({
+        success: false,
+        message: 'Vendor not found',
+      });
+    }
+
+    // Verify this vendor belongs to the user
+    if (vendor.createdById.toString() !== userId.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'You can only view your own vendors',
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      vendor,
+    });
+  } catch (error) {
+    console.error('Get vendor error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch vendor',
+    });
+  }
+};
+
 // @desc    Request edit permission for a vendor
 // @route   POST /api/agent/vendors/:id/request-edit OR POST /api/employee/vendors/:id/request-edit
 // @access  Private (User)
@@ -563,39 +601,68 @@ export const updateMyVendor = async (req, res) => {
       });
     }
 
-    // Update allowed fields
-    const allowedFields = [
-      'restaurantName',
-      'approxDeliveryTime',
-      'approxPriceForTwo',
-      'mobileNumber',
-      'shortDescription',
-      'services',
-      'isPureVeg',
-      'isPopular',
-      'deliveryChargeType',
-      'fixedCharge',
-      'dynamicCharge',
-      'deliveryRadius',
-      'minimumOrderPrice',
-      'fullAddress',
-      'pincode',
-      'landmark',
-      'latitude',
-      'longitude',
-      'city',
-      'state',
-    ];
-
-    allowedFields.forEach((field) => {
-      if (req.body[field] !== undefined) {
-        vendor[field] = req.body[field];
-      }
-    });
-
-    // Handle image upload if present
+    // ==========================================
+    // 1. UPDATE RESTAURANT IMAGE (if provided)
+    // ==========================================
     if (req.file) {
-      vendor.restaurantImage = req.file.path;
+      const uploadResult = await new Promise((resolve, reject) => {
+        const uploadStream = cloudinary.uploader.upload_stream(
+          {
+            folder: 'foodzippy/vendors',
+            resource_type: 'image',
+          },
+          (error, result) => {
+            if (error) reject(error);
+            else resolve(result);
+          }
+        );
+        uploadStream.end(req.file.buffer);
+      });
+      vendor.restaurantImage = uploadResult;
+    }
+
+    // ==========================================
+    // 2. UPDATE DYNAMIC FORM DATA
+    // ==========================================
+    if (req.body.formData) {
+      let formData;
+      try {
+        formData = typeof req.body.formData === 'string' 
+          ? JSON.parse(req.body.formData) 
+          : req.body.formData;
+      } catch {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid formData format',
+        });
+      }
+
+      // Update core system fields from formData
+      if (formData.restaurantName) vendor.restaurantName = formData.restaurantName;
+      if (formData.fullAddress) vendor.fullAddress = formData.fullAddress;
+      if (formData.latitude) vendor.latitude = formData.latitude;
+      if (formData.longitude) vendor.longitude = formData.longitude;
+
+      // Update the formData map
+      vendor.formData = new Map(Object.entries(formData));
+    }
+
+    // ==========================================
+    // 3. UPDATE REVIEW SECTION
+    // ==========================================
+    if (req.body.review) {
+      let reviewData;
+      try {
+        reviewData = typeof req.body.review === 'string' 
+          ? JSON.parse(req.body.review) 
+          : req.body.review;
+      } catch {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid review data format',
+        });
+      }
+      vendor.review = { ...vendor.review, ...reviewData };
     }
 
     // Reset edit flags after update
