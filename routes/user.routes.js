@@ -9,6 +9,7 @@ import {
   getMyProfile,
   updateMyProfile,
   getMyVendors,
+  getMyVendorById,
   requestVendorEdit,
   updateMyVendor,
 } from '../controllers/user.controller.js';
@@ -26,6 +27,7 @@ router.post('/employee/login', userLogin);
 router.get('/agent/profile', userAuth, getMyProfile);
 router.put('/agent/profile', userAuth, upload.single('profileImage'), updateMyProfile);
 router.get('/agent/vendors', userAuth, getMyVendors);
+router.get('/agent/vendors/:id', userAuth, getMyVendorById);
 router.post('/agent/vendors/:id/request-edit', userAuth, requestVendorEdit);
 router.put('/agent/vendors/:id', userAuth, upload.single('restaurantImage'), updateMyVendor);
 
@@ -33,6 +35,7 @@ router.put('/agent/vendors/:id', userAuth, upload.single('restaurantImage'), upd
 router.get('/employee/profile', userAuth, getMyProfile);
 router.put('/employee/profile', userAuth, upload.single('profileImage'), updateMyProfile);
 router.get('/employee/vendors', userAuth, getMyVendors);
+router.get('/employee/vendors/:id', userAuth, getMyVendorById);
 router.post('/employee/vendors/:id/request-edit', userAuth, requestVendorEdit);
 router.put('/employee/vendors/:id', userAuth, upload.single('restaurantImage'), updateMyVendor);
 
