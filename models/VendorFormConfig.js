@@ -89,6 +89,14 @@ const VendorFormConfigSchema = new mongoose.Schema(
       type: Boolean,
       default: false, // System fields cannot be deleted (e.g., restaurantName, restaurantImage)
     },
+    vendorTypes: {
+      type: [String],
+      default: [], // Empty array means applies to all vendor types
+    },
+    labelTemplate: {
+      type: String,
+      default: '', // Template for dynamic labels e.g., "{type} Name" where {type} gets replaced
+    },
   },
   {
     timestamps: true,
@@ -98,6 +106,7 @@ const VendorFormConfigSchema = new mongoose.Schema(
 // Index for efficient queries
 VendorFormConfigSchema.index({ section: 1, order: 1 });
 VendorFormConfigSchema.index({ fieldKey: 1 });
+VendorFormConfigSchema.index({ vendorTypes: 1 });
 
 const VendorFormConfig = mongoose.model('VendorFormConfig', VendorFormConfigSchema);
 

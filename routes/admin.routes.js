@@ -10,6 +10,8 @@ import {
   approveVendorEdit,
   rejectVendorEdit,
   getPendingEditRequests,
+  getUnreadEditRequestsCount,
+  markEditRequestsAsSeen,
   getAllUsers,
   getUserById,
   createUser,
@@ -32,6 +34,8 @@ router.patch('/vendors/:id', adminAuth, updateVendor);
 
 // Edit request routes
 router.get('/edit-requests/pending', adminAuth, getPendingEditRequests);
+router.get('/edit-requests/unread-count', adminAuth, getUnreadEditRequestsCount);
+router.patch('/edit-requests/mark-seen', adminAuth, markEditRequestsAsSeen);
 router.patch('/edit-requests/:id/approve', adminAuth, approveVendorEdit);
 router.patch('/edit-requests/:id/reject', adminAuth, rejectVendorEdit);
 

@@ -5,6 +5,18 @@ import cloudinary from '../config/cloudinary.js';
 export const registerVendor = async (req, res) => {
   try {
     // ==========================================
+    // 0. VALIDATE VENDOR TYPE
+    // ==========================================
+    const vendorType = req.body.vendorType || 'restaurant';
+    
+    if (!vendorType) {
+      return res.status(400).json({
+        success: false,
+        message: 'Vendor type is required',
+      });
+    }
+
+    // ==========================================
     // 1. VALIDATE REVIEW SECTION
     // ==========================================
     if (!req.body.review) {
@@ -67,12 +79,18 @@ export const registerVendor = async (req, res) => {
     });
 
     // ==========================================
-    // 3. GET FORM CONFIG & VALIDATE
+    // 3. GET FORM CONFIG & VALIDATE (filter by vendor type)
     // ==========================================
-    const formFields = await VendorFormConfig.find({
+    const formFieldsQuery = {
       isActive: true,
       section: { $ne: 'review_info' }, // Exclude review section
-    });
+      $or: [
+        { vendorTypes: vendorType },
+        { vendorTypes: { $size: 0 } }, // Empty array means applies to all types
+      ],
+    };
+    
+    const formFields = await VendorFormConfig.find(formFieldsQuery);
 
     // Parse formData from request
     let formData = {};
@@ -128,6 +146,9 @@ export const registerVendor = async (req, res) => {
     // 5. CREATE VENDOR
     // ==========================================
     const vendorData = {
+      // Vendor type (NEW)
+      vendorType: vendorType.toLowerCase(),
+
       // System fields (required by schema)
       restaurantName,
       restaurantImage: uploadResult,

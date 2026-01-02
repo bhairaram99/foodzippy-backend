@@ -1,6 +1,20 @@
 import VendorFormConfig from '../models/VendorFormConfig.js';
 import VendorFormSection from '../models/VendorFormSection.js';
 
+// Helper function to capitalize first letter
+const capitalizeFirst = (str) => {
+  if (!str) return str;
+  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+};
+
+// Helper function to replace "restaurant" with vendor type in a string
+const replaceVendorType = (text, vendorType) => {
+  if (!text || !vendorType) return text;
+  const capitalizedType = capitalizeFirst(vendorType);
+  // Replace "Restaurant" (case-insensitive) with capitalized vendor type
+  return text.replace(/restaurant/gi, capitalizedType);
+};
+
 // ==========================================
 // FORM CONFIG CRUD (Admin Only)
 // ==========================================
@@ -8,24 +22,71 @@ import VendorFormSection from '../models/VendorFormSection.js';
 // Get all form configurations with sections
 export const getFormConfig = async (req, res) => {
   try {
-    const { visibleTo } = req.query; // Filter by role if needed
+    const { visibleTo, vendorType } = req.query; // Filter by role and vendor type if needed
+
+    // Build sections query
+    let sectionsQuery = { isActive: true };
+    
+    // Filter by vendor type if specified
+    if (vendorType) {
+      sectionsQuery.$or = [
+        { vendorTypes: vendorType },
+        { vendorTypes: { $size: 0 } }, // Empty array means applies to all types
+        { vendorTypes: { $exists: false } }, // Field doesn't exist
+      ];
+    }
 
     // Get sections
-    let sections = await VendorFormSection.find({ isActive: true }).sort({ stepNumber: 1, order: 1 });
+    let sections = await VendorFormSection.find(sectionsQuery).sort({ stepNumber: 1, order: 1 });
 
-    // Get fields
+    // Build fields query
     let fieldsQuery = { isActive: true };
+    
     if (visibleTo) {
       fieldsQuery.visibleTo = visibleTo;
     }
 
+    // Filter by vendor type if specified
+    if (vendorType) {
+      fieldsQuery.$or = [
+        { vendorTypes: vendorType },
+        { vendorTypes: { $size: 0 } }, // Empty array means applies to all types
+        { vendorTypes: { $exists: false } }, // Field doesn't exist
+      ];
+    }
+
     const fields = await VendorFormConfig.find(fieldsQuery).sort({ section: 1, order: 1 });
 
-    // Group fields by section
-    const formConfig = sections.map((section) => ({
-      ...section.toObject(),
-      fields: fields.filter((field) => field.section === section.sectionKey),
-    }));
+    // Group fields by section and replace labels dynamically
+    const formConfig = sections.map((section) => {
+      const sectionObj = section.toObject();
+      
+      // Dynamically replace "Restaurant" with vendor type in section label and description
+      if (vendorType) {
+        sectionObj.sectionLabel = replaceVendorType(sectionObj.sectionLabel, vendorType);
+        sectionObj.sectionDescription = replaceVendorType(sectionObj.sectionDescription, vendorType);
+      }
+
+      const sectionFields = fields
+        .filter((field) => field.section === section.sectionKey)
+        .map((field) => {
+          const fieldObj = field.toObject();
+          
+          // Dynamically replace "Restaurant" with vendor type in field label and placeholder
+          if (vendorType) {
+            fieldObj.label = replaceVendorType(fieldObj.label, vendorType);
+            fieldObj.placeholder = replaceVendorType(fieldObj.placeholder, vendorType);
+            fieldObj.helpText = replaceVendorType(fieldObj.helpText, vendorType);
+          }
+          
+          return fieldObj;
+        });
+
+      return {
+        ...sectionObj,
+        fields: sectionFields,
+      };
+    });
 
     res.status(200).json({
       success: true,

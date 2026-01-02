@@ -9,6 +9,7 @@ import attendanceRoutes from './routes/attendance.routes.js';
 import userRoutes from './routes/user.routes.js';
 import userAttendanceRoutes from './routes/userAttendance.routes.js';
 import formConfigRoutes from './routes/formConfig.routes.js';
+import vendorTypeRoutes from './routes/vendorType.routes.js';
 
 dotenv.config();
 
@@ -35,6 +36,9 @@ app.use('/api/attendance', userAttendanceRoutes);
 
 // Form configuration routes
 app.use('/api/form', formConfigRoutes);
+
+// Vendor type routes
+app.use('/api/vendor-types', vendorTypeRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

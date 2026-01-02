@@ -911,3 +911,57 @@ export const getAllUserAttendance = async (req, res) => {
     });
   }
 };
+
+// @desc    Get unread edit requests count
+// @route   GET /api/admin/edit-requests/unread-count
+// @access  Private (Admin)
+export const getUnreadEditRequestsCount = async (req, res) => {
+  try {
+    const count = await Vendor.countDocuments({ 
+      editRequested: true, 
+      editApproved: false,
+      editSeenByAdmin: false 
+    });
+
+    res.status(200).json({
+      success: true,
+      count,
+    });
+  } catch (error) {
+    console.error('Get unread edit requests count error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch unread count',
+      error: error.message,
+    });
+  }
+};
+
+// @desc    Mark edit requests as seen by admin
+// @route   PATCH /api/admin/edit-requests/mark-seen
+// @access  Private (Admin)
+export const markEditRequestsAsSeen = async (req, res) => {
+  try {
+    const result = await Vendor.updateMany(
+      { 
+        editRequested: true, 
+        editApproved: false,
+        editSeenByAdmin: false 
+      },
+      { editSeenByAdmin: true }
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'Edit requests marked as seen',
+      modifiedCount: result.modifiedCount,
+    });
+  } catch (error) {
+    console.error('Mark edit requests as seen error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to mark as seen',
+      error: error.message,
+    });
+  }
+};

@@ -43,6 +43,14 @@ const VendorFormSectionSchema = new mongoose.Schema(
       enum: ['agent', 'employee'],
       default: ['agent', 'employee'],
     },
+    vendorTypes: {
+      type: [String],
+      default: [], // Empty array means applies to all vendor types
+    },
+    labelTemplate: {
+      type: String,
+      default: '', // Template for dynamic labels e.g., "{type} Information"
+    },
   },
   {
     timestamps: true,
