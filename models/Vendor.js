@@ -12,6 +12,18 @@ const vendorSchema = new mongoose.Schema(
     },
 
     // ==========================================
+    // VENDOR TYPE (New field)
+    // ==========================================
+    vendorType: {
+      type: String,
+      required: true,
+      lowercase: true,
+      trim: true,
+      default: 'restaurant',
+      index: true,
+    },
+
+    // ==========================================
     // CORE SYSTEM FIELDS (Non-configurable)
     // ==========================================
     restaurantName: {
@@ -108,6 +120,10 @@ const vendorSchema = new mongoose.Schema(
       type: String,
       trim: true,
       default: '',
+    },
+    editSeenByAdmin: {
+      type: Boolean,
+      default: false,
     },
   },
   {
