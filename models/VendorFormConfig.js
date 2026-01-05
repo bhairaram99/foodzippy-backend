@@ -105,7 +105,6 @@ const VendorFormConfigSchema = new mongoose.Schema(
 
 // Index for efficient queries
 VendorFormConfigSchema.index({ section: 1, order: 1 });
-VendorFormConfigSchema.index({ fieldKey: 1 });
 VendorFormConfigSchema.index({ vendorTypes: 1 });
 
 const VendorFormConfig = mongoose.model('VendorFormConfig', VendorFormConfigSchema);
