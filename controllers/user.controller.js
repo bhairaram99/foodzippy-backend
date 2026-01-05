@@ -551,6 +551,7 @@ export const requestVendorEdit = async (req, res) => {
     vendor.editApproved = false;
     vendor.editRequestDate = new Date();
     vendor.editRemark = remark || '';
+    vendor.editSeenByAdmin = false; // Reset to ensure notification appears in admin panel
 
     await vendor.save();
 
