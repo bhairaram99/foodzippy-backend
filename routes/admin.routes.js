@@ -21,6 +21,7 @@ import {
   getAllUserAttendance,
 } from '../controllers/admin.controller.js';
 import adminAuth from '../middleware/adminAuth.js';
+import upload from '../middleware/upload.js';
 
 const router = express.Router();
 
@@ -47,7 +48,7 @@ router.get('/attendance/:agentId', adminAuth, getAgentAttendanceByAdmin);
 router.get('/users', adminAuth, getAllUsers);
 router.get('/users/:id', adminAuth, getUserById);
 router.post('/users', adminAuth, createUser);
-router.put('/users/:id', adminAuth, updateUser);
+router.put('/users/:id', adminAuth, upload.single('profileImage'), updateUser);
 router.delete('/users/:id', adminAuth, deleteUser);
 
 // User Attendance routes

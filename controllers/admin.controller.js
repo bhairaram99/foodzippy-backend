@@ -753,6 +753,25 @@ export const updateUser = async (req, res) => {
       }
     }
 
+    // Handle profile image upload if provided
+    if (req.file) {
+      const cloudinary = await import('../config/cloudinary.js').then(m => m.default);
+      const uploadResult = await new Promise((resolve, reject) => {
+        const uploadStream = cloudinary.uploader.upload_stream(
+          {
+            folder: 'foodzippy/users',
+            resource_type: 'image',
+          },
+          (error, result) => {
+            if (error) reject(error);
+            else resolve(result);
+          }
+        );
+        uploadStream.end(req.file.buffer);
+      });
+      user.profileImage = uploadResult.secure_url;
+    }
+
     if (name) user.name = name;
     if (username) user.username = username;
     if (mobileNumber) user.phone = mobileNumber; // Support mobileNumber field

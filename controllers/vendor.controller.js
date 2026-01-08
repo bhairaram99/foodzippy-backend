@@ -105,11 +105,16 @@ export const registerVendor = async (req, res) => {
       });
     }
 
+    // Security: Remove restaurantStatus from formData if present
+    // Only admin should be able to change vendor status
+    delete formData.restaurantStatus;
+
     // Validate required fields
     const missingFields = [];
     for (const fieldConfig of formFields) {
-      // Skip restaurantImage validation as it's handled separately via req.file
-      if (fieldConfig.fieldKey === 'restaurantImage') {
+      // Skip system fields that are handled separately or automatically
+      const systemFields = ['restaurantImage', 'restaurantStatus', 'restaurantName', 'fullAddress', 'latitude', 'longitude'];
+      if (systemFields.includes(fieldConfig.fieldKey)) {
         continue;
       }
       
