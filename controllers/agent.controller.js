@@ -160,7 +160,7 @@ export const createAgent = async (req, res) => {
 export const updateAgent = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, username, password, email, phone, dob, agentType, isActive } = req.body;
+    const { name, username, password, email, phone, alternatePhone, dob, agentType, isActive } = req.body;
 
     const agent = await Agent.findById(id);
 
@@ -187,6 +187,7 @@ export const updateAgent = async (req, res) => {
     if (name) agent.name = name;
     if (email !== undefined) agent.email = email;
     if (phone !== undefined) agent.phone = phone;
+    if (alternatePhone !== undefined) agent.alternatePhone = alternatePhone;
     if (agentType) agent.agentType = agentType;
     if (password) agent.password = password; // Will be hashed by pre-save hook
     if (typeof isActive === 'boolean') agent.isActive = isActive;
@@ -219,6 +220,7 @@ export const updateAgent = async (req, res) => {
         username: agent.username,
         email: agent.email,
         phone: agent.phone,
+        alternatePhone: agent.alternatePhone,
         dob: agent.dob,
         age: agent.age,
         agentType: agent.agentType,
