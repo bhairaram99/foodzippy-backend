@@ -192,7 +192,7 @@ export const createUser = async (req, res) => {
 export const updateUser = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, username, password, email, phone, dob, role, isActive } = req.body;
+    const { name, username, password, email, phone, alternatePhone, dob, role, isActive } = req.body;
 
     const user = await User.findById(id);
 
@@ -219,6 +219,7 @@ export const updateUser = async (req, res) => {
     if (name) user.name = name;
     if (email !== undefined) user.email = email;
     if (phone !== undefined) user.phone = phone;
+    if (alternatePhone !== undefined) user.alternatePhone = alternatePhone;
     if (role && ['agent', 'employee'].includes(role)) user.role = role;
     if (password) user.password = password; // Will be hashed by pre-save hook
     if (typeof isActive === 'boolean') user.isActive = isActive;
@@ -251,6 +252,7 @@ export const updateUser = async (req, res) => {
         username: user.username,
         email: user.email,
         phone: user.phone,
+        alternatePhone: user.alternatePhone,
         dob: user.dob,
         age: user.age,
         role: user.role,

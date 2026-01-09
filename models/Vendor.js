@@ -42,6 +42,11 @@ const vendorSchema = new mongoose.Schema(
       default: 'pending',
       index: true,
     },
+    isSeenByAdmin: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
     fullAddress: {
       type: String,
       required: true,
@@ -125,11 +130,79 @@ const vendorSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+
+    // ==========================================
+    // PAYMENT TRACKING
+    // ==========================================
+    paymentCategory: {
+      type: String,
+      enum: ['A', 'B', 'C', 'D'],
+      default: null,
+      index: true,
+    },
+    visitStatus: {
+      type: String,
+      enum: [
+        'pending-visit',              // Not visited yet
+        'visited-onboarded',          // Onboarded on first visit
+        'visited-rejected',           // Rejected on first visit
+        'visited-followup-scheduled', // Follow-up scheduled
+        'followup-onboarded',         // Onboarded after follow-up
+        'followup-rejected',          // Rejected after follow-up
+        'followup-2nd-scheduled',     // 2nd follow-up scheduled
+        '2nd-followup-onboarded',     // Onboarded after 2nd follow-up
+        '2nd-followup-rejected',      // Rejected after 2nd follow-up
+      ],
+      default: 'pending-visit',
+      index: true,
+    },
+    followUpDate: {
+      type: Date,
+      default: null,
+      index: true,
+    },
+    secondFollowUpDate: {
+      type: Date,
+      default: null,
+    },
+    agentFollowUpUpdate: {
+      visitedOn: { type: Date },
+      outcome: { type: String, enum: ['onboarded', 'rejected', '2nd-followup', null] },
+      remarks: { type: String },
+      nextFollowUpDate: { type: Date },
+      updatedAt: { type: Date },
+    },
+    followUpHistory: [{
+      date: { type: Date },
+      outcome: { type: String },
+      remarks: { type: String },
+      updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+      updatedAt: { type: Date, default: Date.now },
+    }],
+    totalPaymentDue: {
+      type: Number,
+      default: 0,
+    },
+    totalPaymentPaid: {
+      type: Number,
+      default: 0,
+    },
+    paymentCompleted: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
   },
   {
     timestamps: true,
   }
 );
+
+// Compound indexes for fast queries
+vendorSchema.index({ createdById: 1, visitStatus: 1 }); // Agent's vendors by status
+vendorSchema.index({ createdById: 1, followUpDate: 1 }); // Agent's follow-ups
+vendorSchema.index({ visitStatus: 1, followUpDate: 1 }); // Admin follow-up tracking
+vendorSchema.index({ paymentCategory: 1, paymentCompleted: 1 }); // Payment reports
 
 const Vendor = mongoose.model('Vendor', vendorSchema);
 

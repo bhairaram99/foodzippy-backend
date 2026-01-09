@@ -20,6 +20,7 @@ import {
   getUserAttendance,
   getAllUserAttendance,
 } from '../controllers/admin.controller.js';
+import { getUnreadVendorRequestsCount, markVendorRequestsAsSeen } from '../controllers/vendor.controller.js';
 import adminAuth from '../middleware/adminAuth.js';
 import upload from '../middleware/upload.js';
 
@@ -30,6 +31,8 @@ router.post('/login', adminLogin);
 // Vendor routes
 router.get('/vendors', adminAuth, getAllVendors);
 router.get('/vendors/analytics', adminAuth, getVendorAnalytics);
+router.get('/vendors/unread-count', adminAuth, getUnreadVendorRequestsCount);
+router.patch('/vendors/mark-seen', adminAuth, markVendorRequestsAsSeen);
 router.get('/vendors/:id', adminAuth, getVendorById);
 router.patch('/vendors/:id', adminAuth, updateVendor);
 

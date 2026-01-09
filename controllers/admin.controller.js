@@ -733,7 +733,7 @@ export const createUser = async (req, res) => {
 export const updateUser = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, username, mobileNumber, phone, email, dob, isActive, password } = req.body;
+    const { name, username, mobileNumber, phone, alternatePhone, email, dob, isActive, password } = req.body;
 
     const user = await User.findById(id);
     if (!user) {
@@ -776,6 +776,7 @@ export const updateUser = async (req, res) => {
     if (username) user.username = username;
     if (mobileNumber) user.phone = mobileNumber; // Support mobileNumber field
     if (phone) user.phone = phone; // Support phone field
+    if (alternatePhone !== undefined) user.alternatePhone = alternatePhone; // Support alternatePhone field
     if (email !== undefined) user.email = email;
     if (dob !== undefined) user.dob = dob;
     if (typeof isActive === 'boolean') user.isActive = isActive;
