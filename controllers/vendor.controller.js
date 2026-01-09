@@ -213,3 +213,57 @@ export const registerVendor = async (req, res) => {
     });
   }
 };
+
+// @desc    Get unread vendor requests count
+// @route   GET /api/admin/vendors/unread-count
+// @access  Private (Admin)
+export const getUnreadVendorRequestsCount = async (req, res) => {
+  try {
+    const count = await Vendor.countDocuments({
+      restaurantStatus: 'pending',
+      isSeenByAdmin: { $ne: true }
+    });
+
+    res.status(200).json({
+      success: true,
+      count,
+    });
+  } catch (error) {
+    console.error('Get unread vendor requests count error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get unread vendor requests count',
+      error: error.message,
+    });
+  }
+};
+
+// @desc    Mark vendor requests as seen
+// @route   PATCH /api/admin/vendors/mark-seen
+// @access  Private (Admin)
+export const markVendorRequestsAsSeen = async (req, res) => {
+  try {
+    const result = await Vendor.updateMany(
+      {
+        restaurantStatus: 'pending',
+        isSeenByAdmin: { $ne: true }
+      },
+      {
+        $set: { isSeenByAdmin: true }
+      }
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'Vendor requests marked as seen',
+      modifiedCount: result.modifiedCount,
+    });
+  } catch (error) {
+    console.error('Mark vendor requests as seen error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to mark vendor requests as seen',
+      error: error.message,
+    });
+  }
+};
