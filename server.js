@@ -11,6 +11,7 @@ import userAttendanceRoutes from './routes/userAttendance.routes.js';
 import formConfigRoutes from './routes/formConfig.routes.js';
 import vendorTypeRoutes from './routes/vendorType.routes.js';
 import paymentRoutes from './routes/payment.routes.js';
+import notificationRoutes from './routes/notification.routes.js';
 
 dotenv.config();
 
@@ -43,6 +44,9 @@ app.use('/api/vendor-types', vendorTypeRoutes);
 
 // Payment routes
 app.use('/api/payments', paymentRoutes);
+
+// Notification routes
+app.use('/api/notifications', notificationRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

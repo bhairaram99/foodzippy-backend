@@ -2,6 +2,7 @@ import User from '../models/User.js';
 import Vendor from '../models/Vendor.js';
 import jwt from 'jsonwebtoken';
 import cloudinary from '../config/cloudinary.js';
+import { createFollowUpNotification } from './notification.controller.js';
 
 // Generate JWT Token
 const generateToken = (userId, userName, role) => {
@@ -665,6 +666,30 @@ export const updateMyVendor = async (req, res) => {
           message: 'Invalid review data format',
         });
       }
+
+      // Check if follow-up date is being updated
+      if (reviewData.followUpDate !== undefined && 
+          reviewData.followUpDate !== vendor.review?.followUpDate) {
+        
+        const oldDate = vendor.review?.followUpDate;
+        const newDate = reviewData.followUpDate;
+
+        // Get user details from the authenticated user
+        const user = await User.findById(userId);
+        
+        if (user) {
+          // Create notification for admin
+          await createFollowUpNotification(
+            vendor._id,
+            userId,
+            user.name || user.userName,
+            user.role,
+            oldDate,
+            newDate
+          );
+        }
+      }
+
       vendor.review = { ...vendor.review, ...reviewData };
     }
 
