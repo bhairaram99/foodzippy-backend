@@ -3,6 +3,7 @@ import PaymentConfig from '../models/PaymentConfig.js';
 import Vendor from '../models/Vendor.js';
 import User from '../models/User.js';
 import mongoose from 'mongoose';
+import { createFollowUpNotification, createStatusUpdateNotification } from './notification.controller.js';
 
 // ==========================================
 // PAYMENT CONFIG APIs (Admin)
@@ -716,6 +717,20 @@ export const updateFollowUpStatus = async (req, res) => {
     }
 
     await vendor.save();
+
+    // Create notification for admin about status update
+    const user = await User.findById(agentId);
+    if (user) {
+      // Always create notification for any status change
+      await createStatusUpdateNotification(
+        vendor._id,
+        agentId,
+        user.name || user.userName,
+        user.role,
+        newVisitStatus,
+        nextFollowUpDate || null
+      );
+    }
 
     res.status(200).json({
       success: true,

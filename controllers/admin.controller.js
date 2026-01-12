@@ -5,6 +5,7 @@ import AgentAttendance from '../models/AgentAttendance.js';
 import Agent from '../models/Agent.js';
 import User from '../models/User.js';
 import UserAttendance from '../models/UserAttendance.js';
+import { createFollowUpNotification } from './notification.controller.js';
 
 export const adminLogin = async (req, res) => {
   try {
@@ -264,17 +265,40 @@ export const updateVendor = async (req, res) => {
     const { id } = req.params;
     const updateData = req.body;
 
+    // Get the vendor before update to check for follow-up date changes
+    const oldVendor = await Vendor.findById(id);
+    
+    if (!oldVendor) {
+      return res.status(404).json({
+        success: false,
+        message: 'Vendor not found',
+      });
+    }
+
+    // Check if follow-up date is being updated
+    const oldFollowUpDate = oldVendor.review?.followUpDate;
+    const newFollowUpDate = updateData.review?.followUpDate;
+
     const vendor = await Vendor.findByIdAndUpdate(
       id,
       { $set: updateData },
       { new: true, runValidators: true }
     );
 
-    if (!vendor) {
-      return res.status(404).json({
-        success: false,
-        message: 'Vendor not found',
-      });
+    // Create notification if follow-up date changed and updated by agent/employee
+    if (newFollowUpDate !== undefined && 
+        newFollowUpDate !== oldFollowUpDate &&
+        oldVendor.createdById && 
+        oldVendor.createdByRole) {
+      
+      await createFollowUpNotification(
+        vendor._id,
+        oldVendor.createdById,
+        oldVendor.createdByName || oldVendor.createdByUsername,
+        oldVendor.createdByRole,
+        oldFollowUpDate,
+        newFollowUpDate
+      );
     }
 
     res.status(200).json({
