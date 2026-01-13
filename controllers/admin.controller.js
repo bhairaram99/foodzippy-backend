@@ -140,10 +140,33 @@ export const getAllVendors = async (req, res) => {
 
     // Search filter
     if (search) {
+      // First, try to find users (agents/employees) matching the search
+      const matchingUsers = await User.find({
+        $or: [
+          { name: { $regex: search, $options: 'i' } },
+          { username: { $regex: search, $options: 'i' } }
+        ]
+      }).select('_id').lean();
+      
+      const userIds = matchingUsers.map(u => u._id);
+
+      // Also check legacy Agent model
+      const matchingAgents = await Agent.find({
+        $or: [
+          { name: { $regex: search, $options: 'i' } },
+          { username: { $regex: search, $options: 'i' } }
+        ]
+      }).select('_id').lean();
+      
+      const agentIds = matchingAgents.map(a => a._id);
+
       filter.$or = [
         { restaurantName: { $regex: search, $options: 'i' } },
         { loginEmail: { $regex: search, $options: 'i' } },
         { mobileNumber: { $regex: search, $options: 'i' } },
+        { city: { $regex: search, $options: 'i' } },
+        ...(userIds.length > 0 ? [{ createdById: { $in: userIds } }] : []),
+        ...(agentIds.length > 0 ? [{ agentId: { $in: agentIds } }] : [])
       ];
     }
 
