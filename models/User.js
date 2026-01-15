@@ -50,6 +50,13 @@ const userSchema = new mongoose.Schema(
       type: Number,
       default: null,
     },
+    agentType: {
+      type: String,
+      enum: ['Junior-Agent', 'Senior-Agent', 'Junior-Employee', 'Assistant-Manager', 'Manager'],
+      default: function() {
+        return this.role === 'agent' ? 'Junior-Agent' : 'Junior-Employee';
+      },
+    },
     profileImage: {
       type: String,
       default: '',
