@@ -45,8 +45,8 @@ const agentSchema = new mongoose.Schema(
     },
     agentType: {
       type: String,
-      enum: ['Field Agent', 'Office Agent', 'Senior Agent', 'Manager'],
-      default: 'Field Agent',
+      enum: ['Junior-Agent', 'Senior-Agent'],
+      default: 'Junior-Agent',
     },
     profileImage: {
       type: String,
