@@ -19,6 +19,8 @@ import {
   deleteUser,
   getUserAttendance,
   getAllUserAttendance,
+  getVendorsByListingType,
+  updateVendorListingCharge,
 } from '../controllers/admin.controller.js';
 import { getUnreadVendorRequestsCount, markVendorRequestsAsSeen } from '../controllers/vendor.controller.js';
 import adminAuth from '../middleware/adminAuth.js';
@@ -33,6 +35,12 @@ router.get('/vendors', adminAuth, getAllVendors);
 router.get('/vendors/analytics', adminAuth, getVendorAnalytics);
 router.get('/vendors/unread-count', adminAuth, getUnreadVendorRequestsCount);
 router.patch('/vendors/mark-seen', adminAuth, markVendorRequestsAsSeen);
+
+// Vendor Listing Charge routes (MUST come before :id routes)
+router.get('/vendors/listing/:type', adminAuth, getVendorsByListingType);
+router.put('/vendors/:id/listing-charge', adminAuth, updateVendorListingCharge);
+
+// Generic vendor routes (MUST come after specific routes)
 router.get('/vendors/:id', adminAuth, getVendorById);
 router.patch('/vendors/:id', adminAuth, updateVendor);
 
