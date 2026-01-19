@@ -1032,3 +1032,101 @@ export const markEditRequestsAsSeen = async (req, res) => {
     });
   }
 };
+
+// ==========================================
+// VENDOR LISTING CHARGE MANAGEMENT
+// ==========================================
+
+export const getVendorsByListingType = async (req, res) => {
+  try {
+    const { type } = req.params;
+    const { page = 1, limit = 50 } = req.query;
+
+    // Validate listing type
+    if (!['launching', 'vip', 'normal'].includes(type)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid listing type. Must be: launching, vip, or normal',
+      });
+    }
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    const [vendors, total] = await Promise.all([
+      Vendor.find({ listingType: type })
+        .populate('createdById', 'name username email phone')
+        .select('restaurantName restaurantImage fullAddress city state listingType listingCharge restaurantStatus createdAt createdByName')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(parseInt(limit)),
+      Vendor.countDocuments({ listingType: type }),
+    ]);
+
+    res.status(200).json({
+      success: true,
+      vendors,
+      pagination: {
+        total,
+        page: parseInt(page),
+        pages: Math.ceil(total / parseInt(limit)),
+        limit: parseInt(limit),
+      },
+      listingType: type,
+    });
+  } catch (error) {
+    console.error('Get vendors by listing type error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch vendors',
+      error: error.message,
+    });
+  }
+};
+
+export const updateVendorListingCharge = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { listingCharge } = req.body;
+
+    // Validate charge
+    if (listingCharge === undefined || listingCharge === null) {
+      return res.status(400).json({
+        success: false,
+        message: 'Listing charge is required',
+      });
+    }
+
+    if (listingCharge < 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Listing charge cannot be negative',
+      });
+    }
+
+    const vendor = await Vendor.findByIdAndUpdate(
+      id,
+      { listingCharge: parseFloat(listingCharge) },
+      { new: true, runValidators: true }
+    ).select('restaurantName listingType listingCharge');
+
+    if (!vendor) {
+      return res.status(404).json({
+        success: false,
+        message: 'Vendor not found',
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Listing charge updated successfully',
+      vendor,
+    });
+  } catch (error) {
+    console.error('Update listing charge error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update listing charge',
+      error: error.message,
+    });
+  }
+};

@@ -132,6 +132,20 @@ const vendorSchema = new mongoose.Schema(
     },
 
     // ==========================================
+    // VENDOR LISTING CHARGE
+    // ==========================================
+    listingType: {
+      type: String,
+      enum: ['launching', 'vip', 'normal'],
+      default: 'launching',
+      index: true,
+    },
+    listingCharge: {
+      type: Number,
+      default: 0,
+    },
+
+    // ==========================================
     // PAYMENT TRACKING
     // ==========================================
     paymentCategory: {
